@@ -1,0 +1,9 @@
+{
+  "name": "core-log",
+  "version": "1.0.0",
+  "private": true,
+  "description": "core.log — a single-file programmer notebook and systems journal",
+  "scripts": {
+    "test": "node --test tests/regression.test.mjs"
+  }
+}
