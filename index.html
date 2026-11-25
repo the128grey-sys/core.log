@@ -1305,6 +1305,9 @@
          ===================================================================== */
       const featuredMount = document.getElementById("featuredMount");
       const entriesMount = document.getElementById("entriesMount");
+      const featuredSection = document.getElementById("featuredSection");
+      const tagFilterMount = document.getElementById("tagFilterMount");
+      const filterCount = document.getElementById("filterCount");
       const readerBackdrop = document.getElementById("readerBackdrop");
       const readerDialog = document.getElementById("readerDialog");
       const readerTitle = document.getElementById("readerTitle");
@@ -1315,11 +1318,72 @@
       let lastTriggerEl = null;
       let savedMainScrollY = 0;
 
+      /* ---------------------------------------------------------------------
+         TAG FILTER STATE
+         Filtering is deliberately URL-free: the pills are <button>s, never
+         hash links, so a filter change cannot fire hashchange, cannot touch
+         the #/slug reader route, and cannot disturb the hero typewriter.
+         --------------------------------------------------------------------- */
+      const ALL_TAG = "all";
+      let activeTag = ALL_TAG;
+
+      function collectTags() {
+        const tags = [];
+        ARTICLES.forEach((article) => {
+          article.tags.forEach((tag) => {
+            if (!tags.includes(tag)) tags.push(tag);
+          });
+        });
+        return tags;
+      }
+
+      function tagCount(tag) {
+        if (tag === ALL_TAG) return ARTICLES.length;
+        return ARTICLES.filter((article) => article.tags.includes(tag)).length;
+      }
+
+      function matchesTag(article, tag) {
+        return tag === ALL_TAG || article.tags.includes(tag);
+      }
+
+      function renderTagFilter() {
+        const pills = [ALL_TAG, ...collectTags()];
+        tagFilterMount.innerHTML = pills
+          .map((tag) => {
+            const label = tag === ALL_TAG ? "all" : `#${escapeHtml(tag)}`;
+            return `
+              <button
+                type="button"
+                class="tag-pill"
+                data-tag="${escapeHtml(tag)}"
+                aria-pressed="${tag === activeTag ? "true" : "false"}"
+              >${label}<span class="pill-count">${tagCount(tag)}</span></button>
+            `;
+          })
+          .join("");
+      }
+
+      function setActiveTag(tag) {
+        const known = tag === ALL_TAG || ARTICLES.some((article) => article.tags.includes(tag));
+        const next = known ? tag : ALL_TAG;
+        if (next === activeTag) return;
+        activeTag = next;
+        renderTagFilter();
+        renderCards();
+      }
+
       function renderCards() {
         const featured = ARTICLES.find((a) => a.featured) || ARTICLES[0];
-        const others = ARTICLES.filter((a) => a.slug !== featured.slug);
+        const featuredMatches = matchesTag(featured, activeTag);
+        const visibleEntries = ARTICLES.filter(
+          (article) => article.slug !== featured.slug && matchesTag(article, activeTag)
+        );
+        const visibleTotal = (featuredMatches ? 1 : 0) + visibleEntries.length;
 
-        featuredMount.innerHTML = `
+        // The pinned card only survives a filter when it carries the active tag.
+        featuredSection.hidden = !featuredMatches;
+        featuredMount.innerHTML = featuredMatches
+          ? `
           <button type="button" class="feature-card" data-open-slug="${escapeHtml(featured.slug)}">
             <span class="feature-badge">★ featured post</span>
             <h3 class="card-title">${escapeHtml(featured.title)}</h3>
@@ -1331,23 +1395,38 @@
               ${featured.tags.map((t) => `<span class="tag">#${escapeHtml(t)}</span>`).join("")}
             </div>
           </button>
-        `;
+        `
+          : "";
 
-        entriesMount.innerHTML = others
-          .map(
-            (art, idx) => `
+        entriesMount.innerHTML = visibleEntries.length
+          ? visibleEntries
+              .map(
+                (art, idx) => `
               <button type="button" class="entry-row" data-open-slug="${escapeHtml(art.slug)}">
                 <span class="entry-idx">${String(idx + 1).padStart(2, "0")}</span>
                 <div>
                   <h3>${escapeHtml(art.title)}</h3>
                   <p>${escapeHtml(art.excerpt)}</p>
+                  <div class="entry-tags">${art.tags.map((t) => `<span class="tag">#${escapeHtml(t)}</span>`).join("")}</div>
                 </div>
                 <span class="entry-arrow" aria-hidden="true">→</span>
               </button>
             `
-          )
-          .join("");
+              )
+              .join("")
+          : `<p class="empty-state">No entries tagged <code>#${escapeHtml(activeTag)}</code> — pick another tag or <code>all</code>.</p>`;
+
+        filterCount.textContent =
+          activeTag === ALL_TAG
+            ? `${ARTICLES.length} entries`
+            : `showing ${visibleTotal} of ${ARTICLES.length}`;
       }
+
+      tagFilterMount.addEventListener("click", (ev) => {
+        const pill = ev.target.closest("[data-tag]");
+        if (!pill) return;
+        setActiveTag(pill.getAttribute("data-tag"));
+      });
 
       function openArticle(slug, triggerEl) {
         const article = ARTICLES.find((a) => a.slug === slug);
@@ -1422,6 +1501,8 @@
       });
 
       function syncFromHash() {
+        // Routing only toggles the reader overlay. The card lists keep their
+        // filter state and the hero typewriter is never re-triggered here.
         const h = window.location.hash || "";
         if (h.startsWith("#/")) {
           const slug = h.slice(2).trim();
@@ -1504,6 +1585,17 @@
         { type: "delAll" },
         { type: "type", text: "small binaries, zero drama." }
       ];
+
+      // Started exactly once from bootstrap. Hash routing and tag filtering
+      // must never call runTypewriter again, otherwise returning from #/slug
+      // would wipe the hero text and replay the animation.
+      let heroStarted = false;
+
+      function startHero() {
+        if (heroStarted) return;
+        heroStarted = true;
+        runTypewriter(HERO_SCRIPT);
+      }
 
       function runTypewriter(steps) {
         if (prefersReducedMotion()) {
@@ -1812,8 +1904,9 @@
          8. BOOTSTRAP
          ===================================================================== */
       applyTheme(getInitialTheme(), false);
+      renderTagFilter();
       renderCards();
-      runTypewriter(HERO_SCRIPT);
+      startHero();
       initGitHubCounters();
       syncFromHash();
       scheduleProgressUpdate();
