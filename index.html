@@ -517,6 +517,111 @@
       font-size: 11px;
     }
 
+    /* Tag filter bar: URL-free filtering (never touches location.hash) */
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px 12px;
+      padding: 12px 14px;
+      margin: 0 0 26px;
+      border-radius: var(--radius-md);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      box-shadow: var(--shadow-card);
+    }
+
+    .filter-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .filter-label code {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .filter-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      flex: 1 1 auto;
+    }
+
+    .tag-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 11px;
+      border-radius: 999px;
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-pill);
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.5;
+      cursor: pointer;
+      transition:
+        transform 200ms var(--ease-spring),
+        border-color 180ms ease,
+        background-color 180ms ease,
+        color 180ms ease;
+    }
+
+    .tag-pill:hover {
+      transform: translateY(-1px);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .tag-pill[aria-pressed="true"] {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .tag-pill .pill-count {
+      font-size: 10px;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-muted);
+    }
+
+    .tag-pill[aria-pressed="true"] .pill-count {
+      color: var(--accent);
+    }
+
+    .filter-count {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .entry-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .empty-state {
+      margin: 0;
+      padding: 22px 20px;
+      border-radius: var(--radius-md);
+      border: 1px dashed var(--border-strong);
+      background: var(--bg-surface-alt);
+      color: var(--text-secondary);
+      font-size: 13px;
+    }
+
+    .empty-state code {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
     .entry-list {
       display: flex;
       flex-direction: column;
@@ -792,12 +897,14 @@
       .gh-card,
       .copy-btn,
       .entry-idx,
-      .entry-arrow {
+      .entry-arrow,
+      .tag-pill {
         transition: none !important;
       }
       .feature-card:hover,
       .entry-row:hover,
-      .gh-card:hover {
+      .gh-card:hover,
+      .tag-pill:hover {
         transform: none;
       }
     }
@@ -868,8 +975,15 @@
       </div>
     </section>
 
+    <!-- Tag Filter Bar: filters both the pinned card and the Recent Logs rows -->
+    <section class="filter-bar" aria-label="Filter entries by tag">
+      <span class="filter-label">$ grep <code>--tag</code></span>
+      <div class="filter-pills" id="tagFilterMount" role="group" aria-label="Filter articles by tag"></div>
+      <span class="filter-count" id="filterCount" aria-live="polite"></span>
+    </section>
+
     <!-- Featured Article -->
-    <section aria-labelledby="featuredHeading">
+    <section id="featuredSection" aria-labelledby="featuredHeading">
       <div class="section-head">
         <h2 id="featuredHeading">Pinned Entry</h2>
       </div>
