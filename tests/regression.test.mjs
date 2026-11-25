@@ -106,7 +106,8 @@ function startStaticServer() {
       }
     });
     srv.on("error", reject);
-    srv.listen(0, "127.0.0.1", () => {
+    // Listen on all interfaces so container preflight sees a reachable bind.
+    srv.listen(0, () => {
       const { port } = srv.address();
       resolve({ srv, url: `http://127.0.0.1:${port}` });
     });
